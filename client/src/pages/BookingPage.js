@@ -6,16 +6,18 @@ import { DatePicker, message, TimePicker } from "antd";
 import moment from "moment";
 import { useDispatch, useSelector } from "react-redux";
 import { showLoading, hideLoading } from "../redux/features/alertSlice";
+import { loadStripe } from "@stripe/stripe-js";
+
+const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 
 const BookingPage = () => {
   const { user } = useSelector((state) => state.user);
   const params = useParams();
   const [doctors, setDoctors] = useState([]);
   const [date, setDate] = useState("");
-  const [time, setTime] = useState();
-  const [isAvailable, setIsAvailable] = useState(false);
+  const [time, setTime] = useState("");
   const dispatch = useDispatch();
-  // login user data
+
   const getUserData = async () => {
     try {
       const res = await axios.post(
@@ -34,11 +36,15 @@ const BookingPage = () => {
       console.log(error);
     }
   };
-  // ============ handle availiblity
-  const handleAvailability = async () => {
+
+  const handleBooking = async () => {
+    if (!date || !time) {
+      return message.warning("Please select date and time.");
+    }
+
     try {
       dispatch(showLoading());
-      const res = await axios.post(
+      const availabilityRes = await axios.post(
         "/api/v1/user/booking-availbility",
         { doctorId: params.doctorId, date, time },
         {
@@ -47,36 +53,23 @@ const BookingPage = () => {
           },
         }
       );
-      dispatch(hideLoading());
-      if (res.data.success) {
-        setIsAvailable(true);
-        console.log(isAvailable);
-        message.success(res.data.message);
-      } else {
-        message.error(res.data.message);
+
+      if (!availabilityRes.data.success) {
+        dispatch(hideLoading());
+        return message.warning("Selected slot is not available.");
       }
-    } catch (error) {
-      dispatch(hideLoading());
-      console.log(error);
-    }
-  };
-  // =============== booking func
-  const handleBooking = async () => {
-    try {
-      setIsAvailable(true);
-      if (!date && !time) {
-        return alert("Date & Time Required");
-      }
-      dispatch(showLoading());
-      const res = await axios.post(
-        "/api/v1/user/book-appointment",
+
+      const stripe = await stripePromise;
+      const paymentRes = await axios.post(
+        "/api/payment/create-checkout-session",
         {
+          appointmentId: `DOC-${Date.now()}`,
+          amount: doctors.feesPerCunsaltation * 100,
+          userEmail: user.email,
           doctorId: params.doctorId,
           userId: user._id,
-          doctorInfo: doctors,
-          userInfo: user,
-          date: date,
-          time: time,
+          date,
+          time,
         },
         {
           headers: {
@@ -84,20 +77,26 @@ const BookingPage = () => {
           },
         }
       );
+
       dispatch(hideLoading());
-      if (res.data.success) {
-        message.success(res.data.message);
+      const session = paymentRes.data;
+      const result = await stripe.redirectToCheckout({ sessionId: session.id });
+
+      if (result.error) {
+        message.error(result.error.message);
       }
     } catch (error) {
       dispatch(hideLoading());
-      console.log(error);
+      console.error(error);
+      message.error("Something went wrong during booking.");
     }
   };
 
   useEffect(() => {
     getUserData();
-    //eslint-disable-next-line
+    // eslint-disable-next-line
   }, []);
+
   return (
     <Layout>
       <h3>Booking Page</h3>
@@ -105,16 +104,14 @@ const BookingPage = () => {
         {doctors && (
           <div>
             <h4>
-              Dr.{doctors.firstName} {doctors.lastName}
+              Dr. {doctors.firstName} {doctors.lastName}
             </h4>
-            <h4>Fees : {doctors.feesPerCunsaltation}</h4>
+            <h4>Fees : ₹{doctors.feesPerCunsaltation}</h4>
             <h4>
-              Timings : {doctors.timings && doctors.timings[0]} -{" "}
-              {doctors.timings && doctors.timings[1]}{" "}
+              Timings : {doctors.timings?.[0]} - {doctors.timings?.[1]}
             </h4>
             <div className="d-flex flex-column w-50">
               <DatePicker
-                aria-required={"true"}
                 className="m-2"
                 format="DD-MM-YYYY"
                 onChange={(value) => {
@@ -122,23 +119,14 @@ const BookingPage = () => {
                 }}
               />
               <TimePicker
-                aria-required={"true"}
                 format="HH:mm"
                 className="mt-3"
                 onChange={(value) => {
                   setTime(moment(value).format("HH:mm"));
                 }}
               />
-
-              <button
-                className="btn btn-primary mt-2"
-                onClick={handleAvailability}
-              >
-                Check Availability
-              </button>
-
-              <button className="btn btn-dark mt-2" onClick={handleBooking}>
-                Book Now
+              <button className="btn btn-dark mt-3" onClick={handleBooking}>
+                Book & Pay Now
               </button>
             </div>
           </div>
