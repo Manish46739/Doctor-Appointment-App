@@ -1,4 +1,6 @@
 const express = require("express");
+const multer = require("multer");
+const upload = multer({ storage: multer.memoryStorage() });
 const {
   loginController,
   registerController,
@@ -10,6 +12,8 @@ const {
   bookeAppointmnetController,
   bookingAvailabilityController,
   userAppointmentsController,
+  updateProfileController,
+  uploadImageController,
 } = require("../controllers/userCtrl");
 const authMiddleware = require("../middlewares/authMiddleware");
 
@@ -25,6 +29,9 @@ router.post("/register", registerController);
 
 //Auth || POST
 router.post("/getUserData", authMiddleware, authController);
+
+//Update Profile || POST
+router.post("/update-profile", authMiddleware, updateProfileController);
 
 //APply Doctor || POST
 router.post("/apply-doctor", authMiddleware, applyDoctorController);
@@ -57,5 +64,8 @@ router.post(
 
 //Appointments List
 router.get("/user-appointments", authMiddleware, userAppointmentsController);
+
+//Upload Image
+router.post("/upload-image", authMiddleware, upload.single('image'), uploadImageController);
 
 module.exports = router;

@@ -1,14 +1,15 @@
 import React from "react";
 import "../styles/LayoutStyles.css";
 import { adminMenu, userMenu } from "./../Data/data";
-
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { Badge, message } from "antd";
+import { Badge, Avatar, message } from "antd";
+
 const Layout = ({ children }) => {
   const { user } = useSelector((state) => state.user);
   const location = useLocation();
   const navigate = useNavigate();
+
   // logout funtion
   const handleLogout = () => {
     localStorage.clear();
@@ -28,14 +29,12 @@ const Layout = ({ children }) => {
       path: "/doctor-appointments",
       icon: "fa-solid fa-list",
     },
-
     {
       name: "Profile",
       path: `/doctor/profile/${user?._id}`,
       icon: "fa-solid fa-user",
     },
   ];
-  // =========== doctor menu ===============
 
   // redering menu list
   const SidebarMenu = user?.isAdmin
@@ -43,6 +42,7 @@ const Layout = ({ children }) => {
     : user?.isDoctor
     ? doctorMenu
     : userMenu;
+
   return (
     <>
       <div className="main">
@@ -56,15 +56,13 @@ const Layout = ({ children }) => {
               {SidebarMenu.map((menu) => {
                 const isActive = location.pathname === menu.path;
                 return (
-                  <>
-                    <div className={`menu-item ${isActive && "active"}`}>
-                      <i className={menu.icon}></i>
-                      <Link to={menu.path}>{menu.name}</Link>
-                    </div>
-                  </>
+                  <div key={menu.name} className={`menu-item ${isActive && "active"}`}>
+                    <i className={menu.icon}></i>
+                    <Link to={menu.path}>{menu.name}</Link>
+                  </div>
                 );
               })}
-              <div className={`menu-item `} onClick={handleLogout}>
+              <div className={`menu-item`} onClick={handleLogout}>
                 <i className="fa-solid fa-right-from-bracket"></i>
                 <Link to="/login">Logout</Link>
               </div>
@@ -72,17 +70,23 @@ const Layout = ({ children }) => {
           </div>
           <div className="content">
             <div className="header">
-              <div className="header-content" style={{ cursor: "pointer" }}>
+              <div className="header-content">
                 <Badge
-                  count={user && user.notifcation.length}
+                  count={user?.notifcation?.length || 0}
                   onClick={() => {
                     navigate("/notification");
                   }}
                 >
-                  <i class="fa-solid fa-bell"></i>
+                  <i className="fa-solid fa-bell"></i>
                 </Badge>
-
-                <Link to="/profile">{user?.name}</Link>
+                <Link to="/profile" className="profile-link">
+                  <Avatar 
+                    src={user?.profilePicture} 
+                    size="large"
+                    style={{ marginRight: '10px' }}
+                  />
+                  <span>{user?.name}</span>
+                </Link>
               </div>
             </div>
             <div className="body">{children}</div>

@@ -4,6 +4,15 @@ const jwt = require("jsonwebtoken");
 const doctorModel = require("../models/doctorModel");
 const appointmentModel = require("../models/appointmentModel");
 const moment = require("moment");
+const cloudinary = require('cloudinary').v2;
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
 //register callback
 const registerController = async (req, res) => {
   try {
@@ -162,17 +171,25 @@ const deleteAllNotificationController = async (req, res) => {
 const getAllDocotrsController = async (req, res) => {
   try {
     const doctors = await doctorModel.find({ status: "approved" });
+    const doctorsWithProfiles = await Promise.all(doctors.map(async (doctor) => {
+      const user = await userModel.findById(doctor.userId);
+      return {
+        ...doctor.toObject(),
+        profilePicture: user?.profilePicture || doctor.profilePicture
+      };
+    }));
+    
     res.status(200).send({
       success: true,
-      message: "Docots Lists Fetched Successfully",
-      data: doctors,
+      message: "Doctors Lists Fetched Successfully",
+      data: doctorsWithProfiles,
     });
   } catch (error) {
     console.log(error);
     res.status(500).send({
       success: false,
       error,
-      message: "Errro WHile Fetching DOcotr",
+      message: "Error While Fetching Doctor",
     });
   }
 };
@@ -264,6 +281,64 @@ const userAppointmentsController = async (req, res) => {
   }
 };
 
+// update profile
+const updateProfileController = async (req, res) => {
+  try {
+    const { name, profilePicture, userId } = req.body;
+    const user = await userModel.findByIdAndUpdate(
+      userId,
+      { name, profilePicture },
+      { new: true }
+    );
+    res.status(200).send({
+      success: true,
+      message: "Profile Updated Successfully",
+      data: user,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      success: false,
+      message: "Error in Profile Update",
+      error,
+    });
+  }
+};
+
+const uploadImageController = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No image file provided"
+      });
+    }
+
+    // Convert buffer to base64
+    const b64 = Buffer.from(req.file.buffer).toString("base64");
+    const dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+
+    // Upload to Cloudinary
+    const result = await cloudinary.uploader.upload(dataURI, {
+      folder: "doctor-app-profiles",
+      resource_type: "auto"
+    });
+
+    res.status(200).json({
+      success: true,
+      url: result.secure_url,
+      message: "Image uploaded successfully"
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      success: false,
+      message: "Error uploading image",
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   loginController,
   registerController,
@@ -275,4 +350,6 @@ module.exports = {
   bookeAppointmnetController,
   bookingAvailabilityController,
   userAppointmentsController,
+  updateProfileController,
+  uploadImageController,
 };

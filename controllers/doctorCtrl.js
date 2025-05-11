@@ -1,6 +1,7 @@
 const appointmentModel = require("../models/appointmentModel");
 const doctorModel = require("../models/doctorModel");
 const userModel = require("../models/userModels");
+
 const getDoctorInfoController = async (req, res) => {
   try {
     const doctor = await doctorModel.findOne({ userId: req.body.userId });
@@ -22,9 +23,11 @@ const getDoctorInfoController = async (req, res) => {
 // update doc profile
 const updateProfileController = async (req, res) => {
   try {
+    const { userId, ...updateData } = req.body;
     const doctor = await doctorModel.findOneAndUpdate(
-      { userId: req.body.userId },
-      req.body
+      { userId },
+      updateData,
+      { new: true }
     );
     res.status(201).send({
       success: true,
@@ -47,7 +50,7 @@ const getDoctorByIdController = async (req, res) => {
     const doctor = await doctorModel.findOne({ _id: req.body.doctorId });
     res.status(200).send({
       success: true,
-      message: "Sigle Doc Info Fetched",
+      message: "Single Doc Info Fetched",
       data: doctor,
     });
   } catch (error) {
@@ -55,7 +58,7 @@ const getDoctorByIdController = async (req, res) => {
     res.status(500).send({
       success: false,
       error,
-      message: "Erro in Single docot info",
+      message: "Error in Single doctor info",
     });
   }
 };

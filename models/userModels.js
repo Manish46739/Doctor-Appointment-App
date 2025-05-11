@@ -13,6 +13,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, "password is require"],
   },
+  profilePicture: {
+    type: String,
+    default: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
+  },
   isAdmin: {
     type: Boolean,
     default: false,
@@ -29,7 +33,7 @@ const userSchema = new mongoose.Schema({
     type: Array,
     default: [],
   },
-});
+}, { timestamps: true });
 
 const userModel = mongoose.model("users", userSchema);
 

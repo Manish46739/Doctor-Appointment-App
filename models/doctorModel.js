@@ -48,6 +48,10 @@ const doctorSchema = new mongoose.Schema(
       type: Object,
       required: [true, "wrok timing is required"],
     },
+    profilePicture: {
+      type: String,
+      default: "https://cdn-icons-png.flaticon.com/512/3774/3774299.png"
+    }
   },
   { timestamps: true }
 );

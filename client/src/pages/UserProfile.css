@@ -1,0 +1,128 @@
+.profile-container {
+    padding: 2rem;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e4e7eb 100%);
+    min-height: calc(100vh - 100px);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.profile-card {
+    width: 100%;
+    max-width: 600px;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+
+.profile-card:hover {
+    transform: translateY(-5px);
+}
+
+.profile-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.profile-header h1 {
+    color: #1a237e;
+    font-size: 2rem;
+    margin: 0;
+}
+
+.profile-content {
+    padding: 1rem;
+}
+
+.appointment-stats {
+    text-align: center;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    background: #f8f9fa;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.appointment-stats .ant-statistic {
+    display: inline-block;
+}
+
+.appointment-stats .ant-statistic-title {
+    color: #1a237e;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.appointment-stats .ant-statistic-content {
+    color: #0d47a1;
+    font-size: 2rem;
+}
+
+.profile-picture-section {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2rem;
+}
+
+.avatar-uploader {
+    display: flex;
+    justify-content: center;
+}
+
+.avatar-uploader .ant-upload {
+    width: 150px !important;
+    height: 150px !important;
+    border-radius: 50% !important;
+    overflow: hidden;
+    background: #fafafa;
+    border: 2px dashed #d9d9d9;
+    transition: all 0.3s ease;
+}
+
+.avatar-uploader .ant-upload:hover {
+    border-color: #1a237e;
+}
+
+.avatar-uploader img {
+    object-fit: cover;
+}
+
+.profile-actions {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: center;
+}
+
+.profile-actions button {
+    min-width: 200px;
+    background: linear-gradient(45deg, #1a237e, #0d47a1);
+    border: none;
+    padding: 12px 24px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.profile-actions button:hover {
+    background: linear-gradient(45deg, #0d47a1, #1a237e);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(26, 35, 126, 0.3);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .profile-container {
+        padding: 1rem;
+    }
+
+    .profile-card {
+        margin: 0 1rem;
+    }
+
+    .profile-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .appointment-stats .ant-statistic-content {
+        font-size: 1.5rem;
+    }
+}

@@ -2,19 +2,22 @@ import React, { useEffect, useState } from "react";
 import Layout from "./../../components/Layout";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
-import { Col, Form, Input, Row, TimePicker, message } from "antd";
+import { Col, Form, Input, Row, TimePicker, message, Upload } from "antd";
 import { useSelector, useDispatch } from "react-redux";
 import { showLoading, hideLoading } from "../../redux/features/alertSlice";
 import moment from "moment";
+import { LoadingOutlined, PlusOutlined } from '@ant-design/icons';
 
 const Profile = () => {
   const { user } = useSelector((state) => state.user);
   const [doctor, setDoctor] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const params = useParams();
-  // update doc ==========
-  //handle form
+
+  // handle form
   const handleFinish = async (values) => {
     try {
       dispatch(showLoading());
@@ -23,6 +26,7 @@ const Profile = () => {
         {
           ...values,
           userId: user._id,
+          profilePicture: imageUrl,
           timings: [
             moment(values.timings[0]).format("HH:mm"),
             moment(values.timings[1]).format("HH:mm"),
@@ -37,19 +41,67 @@ const Profile = () => {
       dispatch(hideLoading());
       if (res.data.success) {
         message.success(res.data.message);
-        navigate("/");
+        // Refresh the doctor info after update
+        getDoctorInfo();
       } else {
-        message.error(res.data.success);
+        message.error(res.data.message);
       }
     } catch (error) {
       dispatch(hideLoading());
       console.log(error);
-      message.error("Somthing Went Wrrong ");
+      message.error("Something Went Wrong");
     }
   };
-  // update doc ==========
 
-  //getDOc Details
+  const handleImageUpload = async (file) => {
+    try {
+      setLoading(true);
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const res = await axios.post('/api/v1/user/upload-image', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (res.data.success) {
+        setImageUrl(res.data.url);
+        message.success('Image uploaded successfully');
+        
+        // Update the doctor profile immediately with the new image
+        const updateRes = await axios.post(
+          "/api/v1/doctor/updateProfile",
+          {
+            userId: user._id,
+            profilePicture: res.data.url
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        if (updateRes.data.success) {
+          message.success('Profile picture updated successfully');
+        }
+      } else {
+        message.error(res.data.message || 'Failed to upload image');
+      }
+      
+      setLoading(false);
+      return false; // Prevent default upload
+    } catch (error) {
+      console.log(error);
+      setLoading(false);
+      message.error("Error uploading image");
+      return false;
+    }
+  };
+
+  // getDOc Details
   const getDoctorInfo = async () => {
     try {
       const res = await axios.post(
@@ -63,6 +115,7 @@ const Profile = () => {
       );
       if (res.data.success) {
         setDoctor(res.data.data);
+        setImageUrl(res.data.data.profilePicture);
       }
     } catch (error) {
       console.log(error);
@@ -73,6 +126,14 @@ const Profile = () => {
     getDoctorInfo();
     //eslint-disable-next-line
   }, []);
+
+  const uploadButton = (
+    <div>
+      {loading ? <LoadingOutlined /> : <PlusOutlined />}
+      <div style={{ marginTop: 8 }}>Upload</div>
+    </div>
+  );
+
   return (
     <Layout>
       <h1>Manage Profile</h1>
@@ -89,7 +150,27 @@ const Profile = () => {
             ],
           }}
         >
-          <h4 className="">Personal Details : </h4>
+          <div className="d-flex justify-content-center mb-4">
+            <Upload
+              name="avatar"
+              listType="picture-card"
+              className="avatar-uploader"
+              showUploadList={false}
+              beforeUpload={handleImageUpload}
+            >
+              {imageUrl ? (
+                <img 
+                  src={imageUrl} 
+                  alt="avatar" 
+                  style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
+                />
+              ) : (
+                uploadButton
+              )}
+            </Upload>
+          </div>
+
+          <h4>Personal Details : </h4>
           <Row gutter={20}>
             <Col xs={24} md={24} lg={8}>
               <Form.Item
@@ -171,12 +252,12 @@ const Profile = () => {
             </Col>
             <Col xs={24} md={24} lg={8}>
               <Form.Item
-                label="Fees Per Cunsaltation"
+                label="Fees Per Consultation"
                 name="feesPerCunsaltation"
                 required
                 rules={[{ required: true }]}
               >
-                <Input type="text" placeholder="your contact no" />
+                <Input type="text" placeholder="your consultation fee" />
               </Form.Item>
             </Col>
             <Col xs={24} md={24} lg={8}>
