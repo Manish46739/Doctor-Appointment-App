@@ -200,18 +200,44 @@ const bookeAppointmnetController = async (req, res) => {
     req.body.date = moment(req.body.date, "DD-MM-YYYY").toISOString();
     req.body.time = moment(req.body.time, "HH:mm").toISOString();
     req.body.status = "pending";
+    req.body.paymentStatus = req.body.paymentStatus || "pending";
+
+    // Get the doctor's user ID before stringifying
+    const doctorId = req.body.doctorId;
+    const doctor = await doctorModel.findById(doctorId);
+    if (!doctor) {
+      return res.status(404).send({
+        success: false,
+        message: "Doctor not found",
+      });
+    }
+
+    // Ensure doctorInfo and userInfo are properly stringified
+    if (typeof req.body.doctorInfo === 'object') {
+      req.body.doctorInfo = JSON.stringify(req.body.doctorInfo);
+    }
+    if (typeof req.body.userInfo === 'object') {
+      req.body.userInfo = JSON.stringify(req.body.userInfo);
+    }
+
     const newAppointment = new appointmentModel(req.body);
     await newAppointment.save();
-    const user = await userModel.findOne({ _id: req.body.doctorInfo.userId });
-    user.notifcation.push({
-      type: "New-appointment-request",
-      message: `A nEw Appointment Request from ${req.body.userInfo.name}`,
-      onCLickPath: "/user/appointments",
-    });
-    await user.save();
+    
+    // Send notification to doctor using doctor's userId from doctorModel
+    const doctorUser = await userModel.findOne({ _id: doctor.userId });
+    if (doctorUser) {
+      const userInfo = JSON.parse(req.body.userInfo);
+      doctorUser.notifcation.push({
+        type: "New-appointment-request",
+        message: `A new Appointment Request from ${userInfo.name}${req.body.paymentStatus === "pending" ? " (Unpaid)" : ""}`,
+        onCLickPath: "/doctor-appointments",
+      });
+      await doctorUser.save();
+    }
+    
     res.status(200).send({
       success: true,
-      message: "Appointment Book succesfully",
+      message: "Appointment Booked successfully",
     });
   } catch (error) {
     console.log(error);

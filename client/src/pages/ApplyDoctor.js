@@ -6,12 +6,13 @@ import { useNavigate } from "react-router-dom";
 import { showLoading, hideLoading } from "../redux/features/alertSlice";
 import axios from "axios";
 import moment from "moment";
+
 const ApplyDoctor = () => {
   const { user } = useSelector((state) => state.user);
-
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  //handle form
+  const [form] = Form.useForm();
+
   const handleFinish = async (values) => {
     try {
       dispatch(showLoading());
@@ -21,8 +22,8 @@ const ApplyDoctor = () => {
           ...values,
           userId: user._id,
           timings: [
-            moment(values.timings[0]).format("HH:mm"),
-            moment(values.timings[1]).format("HH:mm"),
+            moment(values.startTime).format("HH:mm"),
+            moment(values.endTime).format("HH:mm"),
           ],
         },
         {
@@ -41,13 +42,19 @@ const ApplyDoctor = () => {
     } catch (error) {
       dispatch(hideLoading());
       console.log(error);
-      message.error("Somthing Went Wrrong ");
+      message.error("Something Went Wrong");
     }
   };
+
   return (
     <Layout>
       <h1 className="text-center">Apply Doctor</h1>
-      <Form layout="vertical" onFinish={handleFinish} className="m-3">
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={handleFinish}
+        className="m-3"
+      >
         <h4 className="">Personal Details : </h4>
         <Row gutter={20}>
           <Col xs={24} md={24} lg={8}>
@@ -130,20 +137,58 @@ const ApplyDoctor = () => {
           </Col>
           <Col xs={24} md={24} lg={8}>
             <Form.Item
-              label="Fees Per Cunsaltation"
-              name="feesPerCunsaltation"
+              label="Fees Per Consultation"
+              name="feesPerConsultation"
               required
               rules={[{ required: true }]}
             >
               <Input type="text" placeholder="your contact no" />
             </Form.Item>
           </Col>
-          <Col xs={24} md={24} lg={8}>
-            <Form.Item label="Timings" name="timings" required>
-              <TimePicker.RangePicker format="HH:mm" />
+          <Col xs={24} md={12} lg={8}>
+            <Form.Item
+              label="Start Time"
+              name="startTime"
+              required
+              rules={[{ required: true, message: 'Please select start time' }]}
+            >
+              <TimePicker
+                use12Hours
+                format="h:mm A"
+                className="form-input"
+                placeholder="Select start time"
+              />
             </Form.Item>
           </Col>
-          <Col xs={24} md={24} lg={8}></Col>
+          <Col xs={24} md={12} lg={8}>
+            <Form.Item
+              label="End Time"
+              name="endTime"
+              required
+              rules={[
+                { required: true, message: 'Please select end time' },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    const startTime = getFieldValue('startTime');
+                    if (!startTime || !value) {
+                      return Promise.resolve();
+                    }
+                    if (value.isSame(startTime) || value.isBefore(startTime)) {
+                      return Promise.reject(new Error('End time must be after start time'));
+                    }
+                    return Promise.resolve();
+                  },
+                }),
+              ]}
+            >
+              <TimePicker
+                use12Hours
+                format="h:mm A"
+                className="form-input"
+                placeholder="Select end time"
+              />
+            </Form.Item>
+          </Col>
           <Col xs={24} md={24} lg={8}>
             <button className="btn btn-primary form-btn" type="submit">
               Submit

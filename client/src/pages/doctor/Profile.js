@@ -2,20 +2,58 @@ import React, { useEffect, useState } from "react";
 import Layout from "./../../components/Layout";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
-import { Col, Form, Input, Row, TimePicker, message, Upload } from "antd";
+import { Col, Form, Input, Row, TimePicker, message, Upload, Alert } from "antd";
 import { useSelector, useDispatch } from "react-redux";
 import { showLoading, hideLoading } from "../../redux/features/alertSlice";
 import moment from "moment";
-import { LoadingOutlined, PlusOutlined } from '@ant-design/icons';
+import { LoadingOutlined, PlusOutlined, EditOutlined } from '@ant-design/icons';
+import "./Profile.css";
 
 const Profile = () => {
   const { user } = useSelector((state) => state.user);
   const [doctor, setDoctor] = useState(null);
   const [loading, setLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
+  const [form] = Form.useForm();
+  const [stats, setStats] = useState({
+    totalAppointments: 0,
+    monthlyAppointments: 0,
+    completedAppointments: 0
+  });
+  const [showSuccess, setShowSuccess] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const params = useParams();
+
+  // Get doctor stats
+  const getDoctorStats = async () => {
+    try {
+      const res = await axios.get("/api/v1/doctor/doctor-appointments", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      
+      if (res.data.success) {
+        const appointments = res.data.data;
+        const total = appointments.length;
+        const completed = appointments.filter(app => app.status === "approved").length;
+        const monthly = appointments.filter(app => {
+          const appointmentDate = moment(app.date);
+          const currentDate = moment();
+          return appointmentDate.isSame(currentDate, 'month');
+        }).length;
+
+        setStats({
+          totalAppointments: total,
+          monthlyAppointments: monthly,
+          completedAppointments: completed
+        });
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   // handle form
   const handleFinish = async (values) => {
@@ -28,8 +66,8 @@ const Profile = () => {
           userId: user._id,
           profilePicture: imageUrl,
           timings: [
-            moment(values.timings[0]).format("HH:mm"),
-            moment(values.timings[1]).format("HH:mm"),
+            moment(values.startTime).format("HH:mm"),
+            moment(values.endTime).format("HH:mm"),
           ],
         },
         {
@@ -40,8 +78,8 @@ const Profile = () => {
       );
       dispatch(hideLoading());
       if (res.data.success) {
-        message.success(res.data.message);
-        // Refresh the doctor info after update
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 3000);
         getDoctorInfo();
       } else {
         message.error(res.data.message);
@@ -70,7 +108,6 @@ const Profile = () => {
         setImageUrl(res.data.url);
         message.success('Image uploaded successfully');
         
-        // Update the doctor profile immediately with the new image
         const updateRes = await axios.post(
           "/api/v1/doctor/updateProfile",
           {
@@ -92,7 +129,7 @@ const Profile = () => {
       }
       
       setLoading(false);
-      return false; // Prevent default upload
+      return false;
     } catch (error) {
       console.log(error);
       setLoading(false);
@@ -124,6 +161,7 @@ const Profile = () => {
 
   useEffect(() => {
     getDoctorInfo();
+    getDoctorStats();
     //eslint-disable-next-line
   }, []);
 
@@ -136,144 +174,226 @@ const Profile = () => {
 
   return (
     <Layout>
-      <h1>Manage Profile</h1>
-      {doctor && (
-        <Form
-          layout="vertical"
-          onFinish={handleFinish}
-          className="m-3"
-          initialValues={{
-            ...doctor,
-            timings: [
-              moment(doctor.timings[0], "HH:mm"),
-              moment(doctor.timings[1], "HH:mm"),
-            ],
-          }}
-        >
-          <div className="d-flex justify-content-center mb-4">
-            <Upload
-              name="avatar"
-              listType="picture-card"
-              className="avatar-uploader"
-              showUploadList={false}
-              beforeUpload={handleImageUpload}
-            >
-              {imageUrl ? (
-                <img 
-                  src={imageUrl} 
-                  alt="avatar" 
-                  style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
-                />
-              ) : (
-                uploadButton
-              )}
-            </Upload>
-          </div>
+      <div className="doctor-profile-container">
+        <div className="profile-header animate-fade-in">
+          <h1>Manage Your Profile</h1>
+          <div className="specialization-tag">{doctor?.specialization}</div>
+        </div>
 
-          <h4>Personal Details : </h4>
-          <Row gutter={20}>
-            <Col xs={24} md={24} lg={8}>
-              <Form.Item
-                label="First Name"
-                name="firstName"
-                required
-                rules={[{ required: true }]}
-              >
-                <Input type="text" placeholder="your first name" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={24} lg={8}>
-              <Form.Item
-                label="Last Name"
-                name="lastName"
-                required
-                rules={[{ required: true }]}
-              >
-                <Input type="text" placeholder="your last name" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={24} lg={8}>
-              <Form.Item
-                label="Phone No"
-                name="phone"
-                required
-                rules={[{ required: true }]}
-              >
-                <Input type="text" placeholder="your contact no" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={24} lg={8}>
-              <Form.Item
-                label="Email"
-                name="email"
-                required
-                rules={[{ required: true }]}
-              >
-                <Input type="email" placeholder="your email address" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={24} lg={8}>
-              <Form.Item label="Website" name="website">
-                <Input type="text" placeholder="your website" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={24} lg={8}>
-              <Form.Item
-                label="Address"
-                name="address"
-                required
-                rules={[{ required: true }]}
-              >
-                <Input type="text" placeholder="your clinic address" />
-              </Form.Item>
-            </Col>
-          </Row>
-          <h4>Professional Details :</h4>
-          <Row gutter={20}>
-            <Col xs={24} md={24} lg={8}>
-              <Form.Item
-                label="Specialization"
-                name="specialization"
-                required
-                rules={[{ required: true }]}
-              >
-                <Input type="text" placeholder="your specialization" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={24} lg={8}>
-              <Form.Item
-                label="Experience"
-                name="experience"
-                required
-                rules={[{ required: true }]}
-              >
-                <Input type="text" placeholder="your experience" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={24} lg={8}>
-              <Form.Item
-                label="Fees Per Consultation"
-                name="feesPerCunsaltation"
-                required
-                rules={[{ required: true }]}
-              >
-                <Input type="text" placeholder="your consultation fee" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={24} lg={8}>
-              <Form.Item label="Timings" name="timings" required>
-                <TimePicker.RangePicker format="HH:mm" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={24} lg={8}></Col>
-            <Col xs={24} md={24} lg={8}>
-              <button className="btn btn-primary form-btn" type="submit">
-                Update
+        {showSuccess && (
+          <Alert
+            message="Profile Updated Successfully"
+            type="success"
+            showIcon
+            className="success-alert"
+          />
+        )}
+
+        <Row gutter={[24, 24]} className="stats-row animate-fade-in">
+          <Col xs={24} sm={8}>
+            <div className="stat-card">
+              <div className="stat-value">{stats.totalAppointments}</div>
+              <div className="stat-label">Total Appointments</div>
+            </div>
+          </Col>
+          <Col xs={24} sm={8}>
+            <div className="stat-card">
+              <div className="stat-value">{stats.monthlyAppointments}</div>
+              <div className="stat-label">This Month</div>
+            </div>
+          </Col>
+          <Col xs={24} sm={8}>
+            <div className="stat-card">
+              <div className="stat-value">{stats.completedAppointments}</div>
+              <div className="stat-label">Completed</div>
+            </div>
+          </Col>
+        </Row>
+
+        {doctor && (
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={handleFinish}
+            initialValues={{
+              ...doctor,
+              startTime: doctor.timings?.[0] ? moment(doctor.timings[0], "HH:mm") : null,
+              endTime: doctor.timings?.[1] ? moment(doctor.timings[1], "HH:mm") : null
+            }}
+            className="profile-form animate-fade-in"
+          >
+            <div className="profile-picture-section">
+              <div className="profile-picture-wrapper">
+                <Upload
+                  name="avatar"
+                  listType="picture-card"
+                  className="avatar-uploader"
+                  showUploadList={false}
+                  beforeUpload={handleImageUpload}
+                >
+                  {imageUrl ? (
+                    <>
+                      <img 
+                        src={imageUrl} 
+                        alt="avatar" 
+                        style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
+                      />
+                      <div className="edit-overlay">
+                        <EditOutlined />
+                      </div>
+                    </>
+                  ) : (
+                    uploadButton
+                  )}
+                </Upload>
+              </div>
+            </div>
+
+            <h4 className="section-title">Personal Details</h4>
+            <Row gutter={20}>
+              <Col xs={24} md={24} lg={8}>
+                <Form.Item
+                  label="First Name"
+                  name="firstName"
+                  required
+                  rules={[{ required: true }]}
+                >
+                  <Input className="form-input" type="text" placeholder="Your first name" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={24} lg={8}>
+                <Form.Item
+                  label="Last Name"
+                  name="lastName"
+                  required
+                  rules={[{ required: true }]}
+                >
+                  <Input className="form-input" type="text" placeholder="Your last name" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={24} lg={8}>
+                <Form.Item
+                  label="Phone No"
+                  name="phone"
+                  required
+                  rules={[{ required: true }]}
+                >
+                  <Input className="form-input" type="text" placeholder="Your contact number" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={24} lg={8}>
+                <Form.Item
+                  label="Email"
+                  name="email"
+                  required
+                  rules={[{ required: true, type: 'email' }]}
+                >
+                  <Input className="form-input" type="email" placeholder="Your email address" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={24} lg={8}>
+                <Form.Item label="Website" name="website">
+                  <Input className="form-input" type="text" placeholder="Your website" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={24} lg={8}>
+                <Form.Item
+                  label="Address"
+                  name="address"
+                  required
+                  rules={[{ required: true }]}
+                >
+                  <Input className="form-input" type="text" placeholder="Your clinic address" />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <h4 className="section-title">Professional Details</h4>
+            <Row gutter={20}>
+              <Col xs={24} md={24} lg={8}>
+                <Form.Item
+                  label="Specialization"
+                  name="specialization"
+                  required
+                  rules={[{ required: true }]}
+                >
+                  <Input className="form-input" type="text" placeholder="Your specialization" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={24} lg={8}>
+                <Form.Item
+                  label="Experience"
+                  name="experience"
+                  required
+                  rules={[{ required: true }]}
+                >
+                  <Input className="form-input" type="text" placeholder="Your experience" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={24} lg={8}>
+                <Form.Item
+                  label="Consultation Fee"
+                  name="feesPerCunsaltation"
+                  required
+                  rules={[{ required: true }]}
+                >
+                  <Input className="form-input" type="number" placeholder="Your consultation fee" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12} lg={8}>
+                <Form.Item
+                  label="Start Time"
+                  name="startTime"
+                  required
+                  rules={[{ required: true, message: 'Please select start time' }]}
+                >
+                  <TimePicker
+                    use12Hours
+                    format="h:mm A"
+                    className="form-input"
+                    placeholder="Select start time"
+                  />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12} lg={8}>
+                <Form.Item
+                  label="End Time"
+                  name="endTime"
+                  required
+                  rules={[
+                    { required: true, message: 'Please select end time' },
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        const startTime = getFieldValue('startTime');
+                        if (!startTime || !value) {
+                          return Promise.resolve();
+                        }
+                        if (value.isSame(startTime) || value.isBefore(startTime)) {
+                          return Promise.reject(new Error('End time must be after start time'));
+                        }
+                        return Promise.resolve();
+                      },
+                    }),
+                  ]}
+                >
+                  <TimePicker
+                    use12Hours
+                    format="h:mm A"
+                    className="form-input"
+                    placeholder="Select end time"
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <div className="text-center mt-4">
+              <button className="submit-button" type="submit">
+                Update Profile
               </button>
-            </Col>
-          </Row>
-        </Form>
-      )}
+            </div>
+          </Form>
+        )}
+      </div>
     </Layout>
   );
 };

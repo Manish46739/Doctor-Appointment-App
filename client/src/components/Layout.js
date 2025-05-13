@@ -1,14 +1,26 @@
-import React from "react";
+import React, { useEffect } from "react";
 import "../styles/LayoutStyles.css";
 import { adminMenu, userMenu } from "./../Data/data";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
-import { Badge, Avatar, message } from "antd";
+import { useSelector, useDispatch } from "react-redux";
+import { Badge, Avatar, message, Switch } from "antd";
+import { toggleTheme } from "../redux/features/themeSlice";
 
 const Layout = ({ children }) => {
   const { user } = useSelector((state) => state.user);
+  const { isDarkMode } = useSelector((state) => state.theme);
   const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  // Apply theme to document
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", isDarkMode ? "dark" : "light");
+  }, [isDarkMode]);
+
+  const handleThemeChange = () => {
+    dispatch(toggleTheme());
+  };
 
   // logout funtion
   const handleLogout = () => {
@@ -30,7 +42,7 @@ const Layout = ({ children }) => {
       icon: "fa-solid fa-list",
     },
     {
-      name: "Profile",
+      name: "Apply As a Doctor",
       path: `/doctor/profile/${user?._id}`,
       icon: "fa-solid fa-user",
     },
@@ -71,6 +83,13 @@ const Layout = ({ children }) => {
           <div className="content">
             <div className="header">
               <div className="header-content">
+                <Switch
+                  checked={isDarkMode}
+                  onChange={handleThemeChange}
+                  checkedChildren={<i className="fas fa-moon" />}
+                  unCheckedChildren={<i className="fas fa-sun" />}
+                  className="theme-switch"
+                />
                 <Badge
                   count={user?.notifcation?.length || 0}
                   onClick={() => {

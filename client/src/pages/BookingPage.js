@@ -74,6 +74,7 @@ const BookingPage = () => {
           userId: user._id,
           date,
           time,
+          amount: "paid"
         },
         {
           headers: {
@@ -98,6 +99,66 @@ const BookingPage = () => {
     }
   };
 
+  const handleBookingWithoutPayment = async () => {
+    if (!date || !time) {
+      return message.warning("Please select both date and time for the appointment.");
+    }
+
+    try {
+      setIsLoading(true);
+      dispatch(showLoading());
+      
+      // Check availability first
+      const availabilityRes = await axios.post(
+        "/api/v1/user/booking-availbility",
+        { doctorId: params.doctorId, date, time },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      if (!availabilityRes.data.success) {
+        dispatch(hideLoading());
+        setIsLoading(false);
+        return message.warning("Selected slot is not available.");
+      }
+
+      // Create appointment without payment
+      const res = await axios.post(
+        "/api/v1/user/book-appointment",
+        {
+          doctorId: params.doctorId,
+          userId: user._id,
+          doctorInfo: doctors,
+          userInfo: user,
+          date: date,
+          time: time,
+          paymentStatus: "pending",
+          amount: "unpaid"
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      dispatch(hideLoading());
+      setIsLoading(false);
+
+      if (res.data.success) {
+        message.success("Appointment request sent to doctor successfully!");
+      }
+    } catch (error) {
+      console.log(error);
+      message.error("Something went wrong");
+      dispatch(hideLoading());
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     getUserData();
     // eslint-disable-next-line
@@ -113,10 +174,24 @@ const BookingPage = () => {
             <Card 
               className="doctor-info-card"
               cover={
-                <div className="doctor-image">
+                <div className="doctor-image" style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  background: "linear-gradient(45deg, #1a237e, #0d47a1)",
+                  padding: "2rem 0"
+                }}>
                   <img
                     src={doctors.profilePicture || "https://cdn-icons-png.flaticon.com/512/3774/3774299.png"}
                     alt="doctor"
+                    style={{
+                      width: "150px",
+                      height: "150px",
+                      borderRadius: "50%",
+                      objectFit: "cover",
+                      border: "4px solid white",
+                      boxShadow: "0 4px 8px rgba(0,0,0,0.2)"
+                    }}
                   />
                 </div>
               }
@@ -168,13 +243,22 @@ const BookingPage = () => {
                   />
                 </div>
               </div>
-              <button 
-                className={`booking-button ${isLoading ? 'loading' : ''}`}
-                onClick={handleBooking}
-                disabled={isLoading}
-              >
-                {isLoading ? 'Processing...' : 'Book & Pay Now'}
-              </button>
+              <div className="booking-buttons">
+                <button 
+                  className={`booking-button ${isLoading ? 'loading' : ''}`}
+                  onClick={handleBooking}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Processing...' : 'Book & Pay Now'}
+                </button>
+                <button 
+                  className={`booking-button booking-button-secondary ${isLoading ? 'loading' : ''}`}
+                  onClick={handleBookingWithoutPayment}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Processing...' : 'Request Appointment'}
+                </button>
+              </div>
             </Card>
           </Col>
         </Row>

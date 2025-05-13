@@ -13,7 +13,17 @@ const DoctorList = ({ doctor }) => {
         style={{ cursor: "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
         onClick={() => navigate(`/doctor/book-appointment/${doctor._id}`)}
       >
-        <div className="card-img-top text-center pt-3">
+        <div 
+          className="card-img-top text-center" 
+          style={{ 
+            padding: "1.5rem",
+            background: "linear-gradient(45deg, #1a237e, #0d47a1)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            minHeight: "200px"
+          }}
+        >
           <img
             src={doctor.profilePicture || DEFAULT_DOCTOR_IMAGE}
             onError={(e) => {
@@ -27,7 +37,9 @@ const DoctorList = ({ doctor }) => {
               width: "150px", 
               height: "150px", 
               objectFit: "cover",
-              border: "3px solid #f0f0f0"
+              border: "4px solid white",
+              boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
+              transition: "transform 0.3s ease"
             }}
           />
         </div>

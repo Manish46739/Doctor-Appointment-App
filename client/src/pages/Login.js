@@ -1,55 +1,146 @@
-import React from "react";
+import React, { useState } from "react";
 import "../styles/RegisterStyles.css";
-import { Form, Input, message } from "antd";
+import { Form, Input, message, Checkbox } from "antd";
+import { 
+  MailOutlined, 
+  LockOutlined, 
+  EyeInvisibleOutlined, 
+  EyeTwoTone,
+  CheckCircleOutlined,
+  ExclamationCircleOutlined
+} from '@ant-design/icons';
 import { useDispatch } from "react-redux";
 import { showLoading, hideLoading } from "../redux/features/alertSlice";
 import { Link, useNavigate } from "react-router-dom";
+import { GoogleLoginButton, FacebookLoginButton } from "react-social-login-buttons";
 import axios from "axios";
 
 const Login = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  //form handler
-  const onfinishHandler = async (values) => {
+  const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+
+  // Check for saved credentials
+  React.useEffect(() => {
+    const savedEmail = localStorage.getItem('savedEmail');
+    const savedRememberMe = localStorage.getItem('rememberMe') === 'true';
+    
+    if (savedEmail && savedRememberMe) {
+      form.setFieldsValue({ email: savedEmail });
+      setRememberMe(true);
+    }
+  }, [form]);
+
+  const onFinish = async (values) => {
     try {
+      setLoading(true);
       dispatch(showLoading());
+      
+      // Handle remember me
+      if (rememberMe) {
+        localStorage.setItem('savedEmail', values.email);
+        localStorage.setItem('rememberMe', 'true');
+      } else {
+        localStorage.removeItem('savedEmail');
+        localStorage.removeItem('rememberMe');
+      }
+
       const res = await axios.post("/api/v1/user/login", values);
-      window.location.reload();
       dispatch(hideLoading());
+      setLoading(false);
+
       if (res.data.success) {
         localStorage.setItem("token", res.data.token);
-        message.success("Login Successfully");
+        message.success({
+          content: "Login successful!",
+          icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />
+        });
         navigate("/");
       } else {
-        message.error(res.data.message);
+        message.error({
+          content: res.data.message,
+          icon: <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />
+        });
       }
     } catch (error) {
       dispatch(hideLoading());
+      setLoading(false);
       console.log(error);
-      message.error("something went wrong");
+      message.error({
+        content: "Invalid email or password",
+        icon: <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />
+      });
     }
   };
-  return (
-    <div className="form-container ">
-      <Form
-        layout="vertical"
-        onFinish={onfinishHandler}
-        className="register-form"
-      >
-        <h3 className="text-center">Login From</h3>
 
-        <Form.Item label="Email" name="email">
-          <Input type="email" required />
+  return (
+    <div className="form-container">
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={onFinish}
+        className="register-form"
+        requiredMark={false}
+      >
+        <h1 className="form-title">Welcome Back!</h1>
+        <p className="form-subtitle">Login to your account</p>
+
+        <div className="social-login">
+          <GoogleLoginButton onClick={() => message.info("Google login coming soon")} style={{ marginBottom: 10 }} />
+          <FacebookLoginButton onClick={() => message.info("Facebook login coming soon")} />
+        </div>
+
+        <div className="divider">
+          <span>or login with email</span>
+        </div>
+
+        <Form.Item
+          label="Email"
+          name="email"
+          rules={[
+            { required: true, message: 'Please enter your email' },
+            { type: 'email', message: 'Please enter a valid email' }
+          ]}
+        >
+          <Input 
+            prefix={<MailOutlined className="site-form-item-icon" />}
+            placeholder="Enter your email"
+          />
         </Form.Item>
-        <Form.Item label="Password" name="password">
-          <Input type="password" required />
+
+        <Form.Item
+          label="Password"
+          name="password"
+          rules={[{ required: true, message: 'Please enter your password' }]}
+        >
+          <Input.Password
+            prefix={<LockOutlined className="site-form-item-icon" />}
+            placeholder="Enter your password"
+            iconRender={visible => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
+          />
         </Form.Item>
-        <Link to="/register" className="m-2">
-          Not a user Register here
-        </Link>
-        <button className="btn btn-primary" type="submit">
-          Login
+
+        <div className="remember-forgot">
+          <Checkbox 
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+          >
+            Remember me
+          </Checkbox>
+          <Link to="/forgot-password" className="form-link">
+            Forgot password?
+          </Link>
+        </div>
+
+        <button className="form-button" type="submit" disabled={loading}>
+          {loading ? <span>Logging in<span className="loading-dots"></span></span> : "Login"}
         </button>
+
+        <Link to="/register" className="form-link">
+          Don't have an account? Register here
+        </Link>
       </Form>
     </div>
   );

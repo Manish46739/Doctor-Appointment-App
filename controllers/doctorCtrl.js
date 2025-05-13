@@ -69,10 +69,42 @@ const doctorAppointmentsController = async (req, res) => {
     const appointments = await appointmentModel.find({
       doctorId: doctor._id,
     });
+
+    // Ensure appointments have valid JSON strings for doctorInfo and userInfo
+    const formattedAppointments = await Promise.all(appointments.map(async (apt) => {
+      const appointment = apt.toObject();
+      try {
+        // First try to parse existing JSON strings
+        appointment.doctorInfo = JSON.parse(appointment.doctorInfo);
+        appointment.userInfo = JSON.parse(appointment.userInfo);
+      } catch (error) {
+        // If parsing fails, try to fetch user info directly
+        if (appointment.userId) {
+          const user = await userModel.findById(appointment.userId);
+          if (user) {
+            appointment.userInfo = JSON.stringify({
+              name: user.name,
+              email: user.email
+            });
+          } else {
+            appointment.userInfo = JSON.stringify({ name: "Patient not found" });
+          }
+        } else {
+          appointment.userInfo = JSON.stringify({ name: "Patient not found" });
+        }
+
+        // Handle doctorInfo if it's not valid JSON
+        if (typeof appointment.doctorInfo === 'object') {
+          appointment.doctorInfo = JSON.stringify(appointment.doctorInfo);
+        }
+      }
+      return appointment;
+    }));
+
     res.status(200).send({
       success: true,
       message: "Doctor Appointments fetch Successfully",
-      data: appointments,
+      data: formattedAppointments,
     });
   } catch (error) {
     console.log(error);
@@ -87,21 +119,31 @@ const doctorAppointmentsController = async (req, res) => {
 const updateStatusController = async (req, res) => {
   try {
     const { appointmentsId, status } = req.body;
-    const appointments = await appointmentModel.findByIdAndUpdate(
+    
+    // Update appointment status
+    const appointment = await appointmentModel.findByIdAndUpdate(
       appointmentsId,
       { status }
     );
-    const user = await userModel.findOne({ _id: appointments.userId });
-    const notifcation = user.notifcation;
-    notifcation.push({
-      type: "status-updated",
-      message: `your appointment has been updated ${status}`,
-      onCLickPath: "/doctor-appointments",
-    });
-    await user.save();
+
+    // Get doctor info for notification
+    const doctor = await doctorModel.findById(appointment.doctorId);
+    
+    // Send notification to patient
+    const user = await userModel.findOne({ _id: appointment.userId });
+    if (user) {
+      const notifcation = user.notifcation;
+      notifcation.push({
+        type: "appointment-status-updated",
+        message: `Your appointment with Dr. ${doctor.firstName} ${doctor.lastName} has been ${status}`,
+        onClickPath: "/appointments",
+      });
+      await user.save();
+    }
+
     res.status(200).send({
       success: true,
-      message: "Appointment Status Updated",
+      message: `Appointment ${status} successfully`,
     });
   } catch (error) {
     console.log(error);

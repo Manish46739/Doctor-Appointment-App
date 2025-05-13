@@ -1,7 +1,7 @@
 .main {
     padding: 10px;
     height: 100vh;
-    background-color: #f8f9fa;
+    background: var(--bg-gradient);
 }
 
 .layout {
@@ -12,10 +12,10 @@
     min-height: 100%;
     width: 300px;
     border-radius: 10px;
-    background: linear-gradient(180deg, #1a237e 0%, #0d47a1 100%);
+    background: var(--sidebar-bg);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     margin-right: 20px;
-    color: white;
+    color: var(--sidebar-text);
     transition: all 0.3s ease;
 }
 
@@ -28,7 +28,7 @@
     height: 70px;
     margin-bottom: 20px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    background-color: white;
+    background-color: var(--bg-primary);
     border-radius: 10px;
     display: flex;
     align-items: center;
@@ -39,7 +39,7 @@
     height: calc(100vh - 110px);
     margin-bottom: 20px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    background-color: white;
+    background-color: var(--bg-primary);
     border-radius: 10px;
     padding: 20px;
     overflow-y: auto;
@@ -55,6 +55,7 @@
     text-align: center;
     margin: 0;
     font-weight: 600;
+    color: var(--sidebar-text);
 }
 
 .menu {
@@ -74,7 +75,7 @@
 }
 
 .menu-item a {
-    color: white;
+    color: var(--sidebar-text);
     text-decoration: none;
     font-size: 1.1rem;
     display: flex;
@@ -86,6 +87,7 @@
     margin-right: 10px;
     width: 25px;
     text-align: center;
+    color: var(--sidebar-text);
 }
 
 .active {
@@ -94,7 +96,7 @@
 
 .active a,
 .active i {
-    color: white;
+    color: var(--sidebar-text);
 }
 
 .header-content {
@@ -107,14 +109,14 @@
 
 .header-content i {
     font-size: 1.2rem;
-    color: #1a237e;
+    color: var(--text-primary);
     cursor: pointer;
 }
 
 .header-content a {
     text-decoration: none;
     font-size: 1.1rem;
-    color: #1a237e;
+    color: var(--text-primary);
     font-weight: 500;
     padding: 5px 10px;
     border-radius: 5px;
@@ -122,7 +124,7 @@
 }
 
 .header-content a:hover {
-    background-color: #f0f2ff;
+    background-color: var(--hover-bg);
 }
 
 .profile-link {
@@ -130,7 +132,7 @@
     align-items: center;
     text-decoration: none;
     font-size: 1.1rem;
-    color: #1a237e;
+    color: var(--text-primary);
     font-weight: 500;
     padding: 5px 10px;
     border-radius: 5px;
@@ -138,6 +140,31 @@
 }
 
 .profile-link:hover {
-    background-color: #f0f2ff;
-    color: #0d47a1;
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+.theme-switch {
+    margin-right: 10px;
+}
+
+.theme-switch .anticon {
+    color: var(--text-primary);
+}
+
+/* Dark mode specific overrides */
+[data-theme="dark"] .header {
+    border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .body {
+    border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .ant-switch {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .ant-switch-checked {
+    background-color: #1a237e;
 }
