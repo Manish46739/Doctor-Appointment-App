@@ -23,12 +23,24 @@ const getDoctorInfoController = async (req, res) => {
 // update doc profile
 const updateProfileController = async (req, res) => {
   try {
-    const { userId, ...updateData } = req.body;
+    const { userId, profilePicture, ...updateData } = req.body;
+    
+    // Update doctor profile
     const doctor = await doctorModel.findOneAndUpdate(
       { userId },
-      updateData,
+      { ...updateData, profilePicture },
       { new: true }
     );
+
+    // If profile picture is being updated, sync it with user model
+    if (profilePicture) {
+      await userModel.findByIdAndUpdate(
+        userId,
+        { profilePicture },
+        { new: true }
+      );
+    }
+
     res.status(201).send({
       success: true,
       message: "Doctor Profile Updated",
@@ -48,10 +60,25 @@ const updateProfileController = async (req, res) => {
 const getDoctorByIdController = async (req, res) => {
   try {
     const doctor = await doctorModel.findOne({ _id: req.body.doctorId });
+    if (!doctor) {
+      return res.status(404).send({
+        success: false,
+        message: "Doctor not found",
+      });
+    }
+
+    // Always try to get the user's profile picture as it might be more up to date
+    const user = await userModel.findById(doctor.userId);
+    const doctorData = doctor.toObject();
+    if (user) {
+      // Use user's profile picture if it exists, otherwise keep doctor's profile picture
+      doctorData.profilePicture = user.profilePicture || doctorData.profilePicture;
+    }
+
     res.status(200).send({
       success: true,
       message: "Single Doc Info Fetched",
-      data: doctor,
+      data: doctorData,
     });
   } catch (error) {
     console.log(error);
