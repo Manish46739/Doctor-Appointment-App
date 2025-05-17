@@ -96,6 +96,15 @@ const DoctorAppointments = () => {
       )
     },
     {
+      title: "Payment",
+      dataIndex: "paymentStatus",
+      render: (paymentStatus) => (
+        <Tag color={paymentStatus === "completed" ? "green" : "orange"}>
+          {paymentStatus === "completed" ? "Done" : "Pending"}
+        </Tag>
+      )
+    },
+    {
       title: "Actions",
       dataIndex: "actions",
       render: (text, record) => (
